@@ -7,7 +7,7 @@ Este projeto é um sistema inteligente de controle de irrigação utilizando uma
 - **Liberação por RFID:** Utiliza o leitor MFRC522 para liberar o uso aproximando uma tag ou cartão cadastrado.
 - **Painel de Controle Remoto:** O ESP32 atua como um Servidor Web. Acessando o IP da placa pelo navegador, você visualiza o status do sistema e pode "Liberar Remotamente".
 - **Acionamento Manual Seguro:** O botão físico só tem efeito se o sistema for previamente "Liberado" pelo cartão ou pelo celular.
-- **Temporizador Automático:** Uma vez liberado, o usuário tem 15 segundos de acesso. Se o tempo esgotar, a irrigação é bloqueada automaticamente.
+- **Temporizador Automático:** Antes de liberar, o usuário tem acesso ao temporizador. Agora é possível manipular e configurar o tempo de desligamento automático do sistema conforme a necessidade, (Padrão: 15s).
 - **Feedback Visual e Sonoro:** 
   - **LEDs** indicam se o sistema está ligado (Verde) ou bloqueado (Vermelho).
   - **Buzzer** emite bipes diferentes para alertar leitura de cartão, ligamento, desligamento e tempo esgotado.
