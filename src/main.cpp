@@ -8,6 +8,7 @@ WiFiServer server(80);
 #define SS_PIN 5  
 #define RST_PIN 22 
 
+
 int ledVerde = 12;
 int ledVermelho = 13;
 int botao = 14;
@@ -17,6 +18,7 @@ int verde_vermelho = 1;
 int ultimo_verde_vermelho = 1;
 
 unsigned long tempoInicio = 0; 
+unsigned long tempoMax = 15000;
 bool sistemaLiberado;
 String statusSite = "Aguardando cartao...";
 
@@ -99,7 +101,7 @@ void setup() {
   pinMode(botao, INPUT_PULLUP);
   pinMode(pinRele, OUTPUT);
   
-  WiFi.begin("NOME_DA_REDE", "SENHA_DA_REDE");
+  WiFi.begin("WiFi-Nome", "WiFi-Senha");
   
   Serial.print("Conectando");
   
@@ -163,7 +165,23 @@ void loop() {
               client.println();
 
             }
+            else if (requisicaoCompleta.indexOf("GET /tempo?valor=") != -1){
+              int inicioNumero = requisicaoCompleta.indexOf("valor=") + 6;
+              int fimNumero = requisicaoCompleta.indexOf(" HTTP");
 
+              String numeroTexto = requisicaoCompleta.substring(inicioNumero, fimNumero);
+              int segundosEscolhidos = numeroTexto.toInt();
+
+              tempoMax = segundosEscolhidos * 1000;
+
+              Serial.print("Novo tempo alterado para: ");
+              Serial.print(segundosEscolhidos);
+              Serial.println(" segundos."); 
+
+              client.println("HTTP/1.1 200 OK");
+              client.println("Connection: close");
+              client.println();
+            }
             else {
               client.println("HTTP/1.1 200 OK");
               client.println("Content-type:text/html");
@@ -281,10 +299,39 @@ void loop() {
                     <a href='/abrir' style='text-decoration: none;'>
                       <button class="btn">Liberar Remotamente</button>
                     </a>
+                    
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #333;">
+                        <p><strong>Tempo p/ Desligar automaticamente :</strong></p>
+                        <label for="tempo-slider">Escolha o tempo:<br></label>
+                        <!-- O input chama a função atualizarValor() cada vez que muda (oninput) -->
+                        <input type="range" id="tempo-slider" name="tempo-slider" min="10" max="30" value="15" oninput="atualizarValor()">
+    
+                        <!-- Onde o número vai aparecer (começa em 20 que é o valor padrão) -->
+                        <br>
+                        <span id="valor-selecionado">15</span> segundos
+                        <br>
+
+                        <button class="btn" style="background-color:  #2196f3; margin-top: 15px;"
+                        onclick="enviarTempo()">Selecionar</button>
+                    </div>
                   </div>
+                  <script>
+                  function atualizarValor() {
+                    const slider = document.getElementById('tempo-slider');
+                    const textoValor = document.getElementById('valor-selecionado');
+                    textoValor.innerText = slider.value;
+                  }
+                  function enviarTempo() {
+                    const tempo = document.getElementById('tempo-slider').value;
+                    fetch('/tempo?valor=' + tempo)
+                        .then(response => {
+                            alert("Tempo alterado para " + tempo + " segundos!");
+                        }); 
+                  }
+                </script>
                 </body>
                 </html>
-              )rawhtml");
+                )rawhtml");
             }
             break; 
           } else {
@@ -330,12 +377,15 @@ void loop() {
     ultimo_verde_vermelho = verde_vermelho;
   }
   
-  if (sistemaLiberado && (millis() - tempoInicio >= 15000)) {
+  if (sistemaLiberado && (millis() - tempoInicio >= tempoMax)) {
     sistemaLiberado = false;
     statusSite = "Botao bloqueado (Tempo esgotado)";
     Serial.println("TEMPO ESGOTADO. Botao bloqueado.");
     verde_vermelho = 1;
     ultimo_verde_vermelho = 1; 
     bipDesligarTotal();
+    rfid.PCD_SoftPowerDown();
+    delay(500);
+    rfid.PCD_SoftPowerUp();
   }
 }
