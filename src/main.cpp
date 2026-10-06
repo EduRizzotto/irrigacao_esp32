@@ -2,12 +2,21 @@
 #include <SPI.h>
 #include <MFRC522.h>
 #include <WiFi.h>
+#include "time.h"
+
 
 WiFiServer server(80);
 
 #define SS_PIN 5  
 #define RST_PIN 22 
 
+// calcular o tempo
+const char* ntpServer = "pool.ntp.org";
+const long gmtOffset_sec = -10800;
+const int daylightOffset_sec = 0;
+
+unsigned long ultimoTempoRelogio = 0;
+bool jaAcionouAgendado = false;
 
 int ledVerde = 12;
 int ledVermelho = 13;
@@ -91,6 +100,16 @@ bool verificar_rfid() {
   }
 }
 
+void printLocalTime()
+{
+  struct tm timeinfo;
+  if(!getLocalTime(&timeinfo)){
+    Serial.println("Falha ao obter horário");
+    return;
+  }
+  Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+}
+
 void setup() {
   Serial.begin(115200);
   SPI.begin();       
@@ -116,6 +135,10 @@ void setup() {
   
   server.begin();
   Serial.print("\nServidor Conectado\n");
+
+  // Configura o fuso horário e sincroniza a hora via internet (NTP)
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  printLocalTime();
 }
 
 void loop() {
@@ -375,6 +398,33 @@ void loop() {
       bipDesligar();
     }
     ultimo_verde_vermelho = verde_vermelho;
+  }
+
+  //VERIFICACAO DO HORARIO NO LOOP
+    if (millis() - ultimoTempoRelogio >= 1000) {
+    ultimoTempoRelogio = millis();
+    printLocalTime();
+    
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo)) {
+      
+      if (timeinfo.tm_hour == 7 && 
+           timeinfo.tm_min == 30) { //07:30
+
+        if (!jaAcionouAgendado) {
+          jaAcionouAgendado = true;
+          sistemaLiberado = true;
+          tempoInicio = millis();
+          verde_vermelho = -1; 
+
+          statusSite = "Irrigação programada ativada";
+          Serial.println("HORÁRIO AGENDADO (07:30) - IRRIGAÇÃO LIGADA!");
+        }
+      } else {
+        jaAcionouAgendado = false; 
+      }
+
+    }
   }
   
   if (sistemaLiberado && (millis() - tempoInicio >= tempoMax)) {
