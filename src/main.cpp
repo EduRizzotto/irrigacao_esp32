@@ -210,6 +210,31 @@ void loop() {
               client.println("Connection: close");
               client.println();
             }
+            else if (requisicaoCompleta.indexOf("GET /agendar?h=") != -1) {
+              // 1. Encontra a posição do "h=" e do "m=" na URL
+              int posH = requisicaoCompleta.indexOf("h=") + 2;
+              int posEComercial = requisicaoCompleta.indexOf("&m=");
+              int posM = requisicaoCompleta.indexOf("m=") + 2;
+              int posEspaco = requisicaoCompleta.indexOf(" HTTP");
+              
+              // 2. Recorta os números como texto
+              String horaTexto = requisicaoCompleta.substring(posH, posEComercial);
+              String minutoTexto = requisicaoCompleta.substring(posM, posEspaco);
+              
+              // 3. Converte o texto para número e salva nas variáveis globais
+              horaAgendada = horaTexto.toInt();
+              minutoAgendado = minutoTexto.toInt();
+              
+              Serial.print("Novo horário agendado para: ");
+              Serial.print(horaAgendada);
+              Serial.print(":");
+              Serial.println(minutoAgendado);
+              
+              // 4. Dá o "OK" para o navegador parar de carregar
+              client.println("HTTP/1.1 200 OK");
+              client.println("Connection: close");
+              client.println();
+            }
             else {
               client.println("HTTP/1.1 200 OK");
               client.println("Content-type:text/html");
@@ -526,8 +551,8 @@ void loop() {
     struct tm timeinfo;
     if (getLocalTime(&timeinfo)) {
       
-      if (timeinfo.tm_hour == 7 && 
-           timeinfo.tm_min == 30) { //07:30
+      if (timeinfo.tm_hour == horaAgendada && 
+           timeinfo.tm_min == minutoAgendado) { //07:30
 
         if (!jaAcionouAgendado) {
           jaAcionouAgendado = true;
