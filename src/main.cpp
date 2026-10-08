@@ -125,7 +125,7 @@ void setup() {
   pinMode(botao, INPUT_PULLUP);
   pinMode(pinRele, OUTPUT);
   
-  WiFi.begin("WiFi-Nome", "WiFi-Senha");
+  WiFi.begin("Wifi", "Senha");
   
   Serial.print("Conectando");
   
@@ -577,8 +577,6 @@ void loop() {
     verde_vermelho = 1;
     ultimo_verde_vermelho = 1; 
     bipDesligarTotal();
-    rfid.PCD_SoftPowerDown();
-    delay(500);
-    rfid.PCD_SoftPowerUp();
+    rfid.PCD_Init();
   }
 }
